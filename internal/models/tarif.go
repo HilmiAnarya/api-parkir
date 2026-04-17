@@ -21,3 +21,7 @@ type Tarif struct {
 	UpdatedAt      time.Time      `json:"updated_at"`
 	DeletedAt      gorm.DeletedAt `json:"-" gorm:"index"`
 }
+
+func (Tarif) TableName() string {
+	return "tb_tarif"
+}

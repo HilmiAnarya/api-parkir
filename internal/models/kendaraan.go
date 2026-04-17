@@ -17,3 +17,7 @@ type Kendaraan struct {
 	UpdatedAt      time.Time      `json:"updated_at"`
 	DeletedAt      gorm.DeletedAt `json:"-" gorm:"index"`
 }
+
+func (Kendaraan) TableName() string {
+	return "tb_kendaraan"
+}

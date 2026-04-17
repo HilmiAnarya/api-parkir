@@ -33,3 +33,7 @@ type Transaksi struct {
 	UpdatedAt    time.Time       `json:"updated_at"`
 	DeletedAt    gorm.DeletedAt  `json:"-" gorm:"index"`
 }
+
+func (Transaksi) TableName() string {
+	return "tb_transaksi"
+}

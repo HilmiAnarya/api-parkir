@@ -1,9 +1,12 @@
 package main
 
 import (
-	"log"
-	"api-parkir/internal/config" 
+	"api-parkir/internal/config"
+	"api-parkir/internal/modules/area"
+	"api-parkir/internal/modules/tarif"
+	"api-parkir/internal/modules/transaction"
 	"api-parkir/internal/modules/user"
+	"log"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
@@ -28,6 +31,12 @@ func main() {
 
 	// Kirim config.DB ke modul-modul yang membutuhkan
 	user.SetupRoute(api, config.DB)
+	// Daftarkan Module Transaction
+	transaction.SetupRoute(api, config.DB)
+	// Daftarkan Module Area
+	area.SetupRoute(api, config.DB)
+	// Daftarkan Module Tarif
+	tarif.SetupRoute(api, config.DB)
 
 	// 5. Start Server
 	port := config.GetEnv("PORT", "8080")
