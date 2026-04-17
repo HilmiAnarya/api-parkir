@@ -1,19 +1,18 @@
 package config
 
 import (
-	"database/sql"
 	"fmt"
 	"log"
-	"time"
 
-	_ "github.com/lib/pq" // Wajib ada underscore (init) agar driver PostgreSQL terbaca
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
-// DB adalah variabel global agar bisa diakses oleh Repository nanti
-var DB *sql.DB
+// DB didefinisikan sebagai *gorm.DB agar bisa dipakai di seluruh aplikasi
+var DB *gorm.DB
 
-// ConnectDB membuka koneksi ke PostgreSQL
 func ConnectDB() {
+	// Ambil data dari .env melalui helper GetEnv yang sudah kita buat
 	host := GetEnv("DB_HOST", "localhost")
 	port := GetEnv("DB_PORT", "5432")
 	user := GetEnv("DB_USER", "postgres")
@@ -21,26 +20,17 @@ func ConnectDB() {
 	dbname := GetEnv("DB_NAME", "db_parkir")
 	sslmode := GetEnv("DB_SSLMODE", "disable")
 
-	// Merakit Connection String
-	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
-		host, port, user, password, dbname, sslmode)
+	// Merakit DSN secara dinamis
+	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s",
+		host, user, password, dbname, port, sslmode)
 
 	var err error
-	DB, err = sql.Open("postgres", dsn)
+	// Langsung buka koneksi menggunakan GORM
+	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
+
 	if err != nil {
-		log.Fatalf("❌ Gagal membuka database: %v\n", err)
+		log.Fatalf("❌ Gagal terhubung ke Database (via GORM): %v", err)
 	}
 
-	// Tes koneksi sebenarnya (Ping)
-	err = DB.Ping()
-	if err != nil {
-		log.Fatalf("❌ Gagal terhubung (Ping) ke PostgreSQL: %v\n", err)
-	}
-
-	// Connection Pooling (Sangat penting agar server tidak crash saat banyak mobil masuk bersamaan)
-	DB.SetMaxOpenConns(25)                 // Maksimal 25 koneksi aktif bersamaan
-	DB.SetMaxIdleConns(25)                 // Maksimal 25 koneksi standby
-	DB.SetConnMaxLifetime(5 * time.Minute) // Tiap koneksi direfresh setiap 5 menit
-
-	log.Println("✅ Berhasil terhubung ke PostgreSQL!")
+	log.Println("✅ Database terhubung sempurna melalui GORM!")
 }

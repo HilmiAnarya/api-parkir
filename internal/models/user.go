@@ -14,7 +14,7 @@ const (
 )
 
 type User struct {
-	ID           uint           `json:"id" gorm:"primaryKey;autoIncrement"`
+	ID           uint           `json:"id_user" gorm:"primaryKey;autoIncrement"`
 	NamaLengkap  string         `json:"nama_lengkap" gorm:"size:50;not null"`
 	Username     string         `json:"username" gorm:"size:50;uniqueIndex;not null"`
 	Password     string         `json:"-" gorm:"size:100;not null"`
@@ -23,4 +23,8 @@ type User struct {
 	CreatedAt    time.Time      `json:"created_at"`
 	UpdatedAt    time.Time      `json:"updated_at"`
 	DeletedAt    gorm.DeletedAt `json:"-" gorm:"index"` // GORM Soft Delete
+}
+
+func (User) TableName() string {
+	return "tb_user"
 }
