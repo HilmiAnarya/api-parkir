@@ -4,5 +4,8 @@ CREATE TABLE tb_kendaraan (
     jenis_kendaraan VARCHAR(20),
     warna VARCHAR(20),
     pemilik VARCHAR(100),
-    id_user INT REFERENCES tb_user(id_user) ON DELETE SET NULL
+    id_user INT REFERENCES tb_user(id_user) ON DELETE SET NULL,
+    deleted_at TIMESTAMP NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );

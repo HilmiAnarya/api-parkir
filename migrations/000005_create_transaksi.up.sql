@@ -12,5 +12,8 @@ CREATE TABLE tb_transaksi (
     id_user INT NOT NULL REFERENCES tb_user(id_user),
     id_area INT NOT NULL REFERENCES tb_area_parkir(id_area),
     foto_masuk VARCHAR(255) NOT NULL,
-    foto_keluar VARCHAR(255)
+    foto_keluar VARCHAR(255),
+    deleted_at TIMESTAMP NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
