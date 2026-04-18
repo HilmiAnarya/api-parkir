@@ -18,6 +18,7 @@ type Repository interface {
 	CreateTransaction(transaksi *models.Transaksi) error
 	UpdateTransaction(transaksi *models.Transaksi) error
 	FindTarifByJenis(jenis string) (*models.Tarif, error)
+	InsertLogAktivitas(log *models.LogAktivitas) error
 }
 
 type repository struct {
@@ -58,13 +59,15 @@ func (r *repository) FindOrCreateKendaraan(k *models.Kendaraan) error {
 
 func (r *repository) FindActiveTransaction(platNomor string) (*models.Transaksi, error) {
 	var trx models.Transaksi
+	
+	// Kita kembalikan pakai JOIN karena ini yang paling stabil dan sudah terbukti jalan
 	err := r.db.Preload("Kendaraan").
 		Joins("JOIN tb_kendaraan ON tb_kendaraan.id = tb_transaksi.id_kendaraan").
 		Where("tb_kendaraan.plat_nomor = ? AND tb_transaksi.status = ?", platNomor, models.StatusMasuk).
 		First(&trx).Error
-	
+
 	if err != nil {
-		return nil, err // FIX: Mencegah service mengira data ada (menghindari 409 Conflict palsu)
+		return nil, err // Wajib return nil agar Golang tidak mengira ada data siluman
 	}
 	return &trx, nil
 }
@@ -84,4 +87,8 @@ func (r *repository) FindTarifByJenis(jenis string) (*models.Tarif, error) {
 		return nil, err // FIX: Wajib return nil jika tidak ketemu
 	}
 	return &tarif, nil
+}
+
+func (r *repository) InsertLogAktivitas(log *models.LogAktivitas) error {
+	return r.db.Create(log).Error
 }

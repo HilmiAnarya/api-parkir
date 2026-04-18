@@ -1,7 +1,7 @@
 CREATE TYPE status_transaksi AS ENUM ('masuk', 'keluar');
 
 CREATE TABLE tb_transaksi (
-    id_parkir SERIAL PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     id_kendaraan INT NOT NULL REFERENCES tb_kendaraan(id) ON DELETE CASCADE,
     waktu_masuk TIMESTAMP NOT NULL,
     waktu_keluar TIMESTAMP,

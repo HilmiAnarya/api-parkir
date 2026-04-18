@@ -5,6 +5,8 @@ import (
 	"errors"
 	"math"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 type Service interface {
@@ -34,8 +36,16 @@ func (s *service) CheckIn(req CheckInRequest) (*models.Transaksi, error) {
 			return errors.New("mohon maaf, area parkir penuh")
 		}
 
-		// 2. Cek apakah kendaraan sudah parkir tapi belum keluar (Double Check-In)
-		activeTrx, _ := txRepo.FindActiveTransaction(req.PlatNomor)
+		// 2. Cek apakah kendaraan sudah parkir tapi belum keluar
+		activeTrx, err := txRepo.FindActiveTransaction(req.PlatNomor)
+		
+		// PENJAGA KEAMANAN UTAMA:
+		// Jika ada error, DAN errornya bukan "Data Tidak Ditemukan", hentikan transaksi!
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			return errors.New("terjadi kesalahan database saat mengecek status kendaraan") 
+		}
+		
+		// Jika mobilnya memang ada di dalam (activeTrx tidak kosong)
 		if activeTrx != nil {
 			return errors.New("kendaraan ini sedang berada di dalam area parkir")
 		}
@@ -67,6 +77,16 @@ func (s *service) CheckIn(req CheckInRequest) (*models.Transaksi, error) {
 		if err := txRepo.UpdateArea(area); err != nil {
 			return errors.New("gagal mengupdate kapasitas area")
 		}
+
+		// ==========================================
+		// 6. CATAT LOG AKTIVITAS (BARU)
+		// ==========================================
+		logMasuk := models.LogAktivitas{
+			IDUser:    req.IDUser,
+			Aktivitas: "Memproses Check-In kendaraan plat: " + req.PlatNomor,
+		}
+		// Abaikan error log agar transaksi utama tidak gagal jika log gagal dicatat
+		_ = txRepo.InsertLogAktivitas(&logMasuk)
 
 		return nil // Sukses
 	})
@@ -122,6 +142,15 @@ func (s *service) CheckOut(req CheckOutRequest) (*models.Transaksi, error) {
 			area.Terisi -= 1
 			txRepo.UpdateArea(area)
 		}
+
+		// ==========================================
+		// 6. CATAT LOG AKTIVITAS (BARU)
+		// ==========================================
+		logKeluar := models.LogAktivitas{
+			IDUser:    req.IDUser,
+			Aktivitas: "Memproses Check-Out kendaraan plat: " + req.PlatNomor,
+		}
+		_ = txRepo.InsertLogAktivitas(&logKeluar)
 
 		trxToUpdate = trx
 		return nil
