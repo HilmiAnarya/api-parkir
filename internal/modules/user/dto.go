@@ -14,6 +14,13 @@ type LoginRequest struct {
 	Password string `json:"password"`
 }
 
+type LoginResponse struct {
+	Token       string `json:"token"`
+	IDUser      uint   `json:"id_user"`
+	NamaLengkap string `json:"nama_lengkap"`
+	Role        string `json:"role"`
+}
+
 // Format standar balasan API (JSON Response)
 type UserResponse struct {
 	ID          uint   `json:"id"`

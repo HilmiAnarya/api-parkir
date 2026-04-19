@@ -19,5 +19,6 @@ func SetupRoute(router fiber.Router, db *gorm.DB) {
 	// Endpoint
 	userRoute.Post("/register", handler.CreateUser) // Menambah user (Admin only nanti)
 	userRoute.Post("/login", handler.Login)         // Login sistem
+	userRoute.Post("/logout", handler.Logout)
 	userRoute.Get("/", handler.GetUsers)            // Menampilkan semua user
 }

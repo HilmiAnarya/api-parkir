@@ -1,15 +1,18 @@
 package user
 
 import (
+	"api-parkir/internal/config"
 	"api-parkir/internal/models"
 	"errors"
+	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type Service interface {
 	RegisterUser(req CreateUserRequest) (*models.User, error)
-	Login(req LoginRequest) (*models.User, error)
+	Login(req LoginRequest) (string, *models.User, error)
 	GetAllUsers() ([]models.User, error)
 }
 
@@ -52,24 +55,36 @@ func (s *service) RegisterUser(req CreateUserRequest) (*models.User, error) {
 	return &newUser, nil
 }
 
-func (s *service) Login(req LoginRequest) (*models.User, error) {
-	// Cari user berdasarkan username
+func (s *service) Login(req LoginRequest) (string, *models.User, error) {
+	// 1. Cari user berdasarkan username
 	user, err := s.repo.FindByUsername(req.Username)
 	if err != nil {
-		return nil, errors.New("username atau password salah")
+		return "", nil, errors.New("username atau password salah")
 	}
 
-	if !user.StatusAktif {
-		return nil, errors.New("akun anda sedang dinonaktifkan")
-	}
-
-	// Cocokkan password plain dari request dengan password hash dari DB
+	// 2. VERIFIKASI BCRYPT (Perbaikan Utama)
+	// Kita bandingkan hash di DB dengan password murni dari request
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password))
 	if err != nil {
-		return nil, errors.New("username atau password salah")
+		// Jika error, berarti password salah
+		return "", nil, errors.New("username atau password salah")
 	}
 
-	return user, nil
+	// 3. Buat Token JWT (Jika password cocok)
+	claims := jwt.MapClaims{
+		"id_user": user.ID,
+		"role":    user.Role,
+		"exp":     time.Now().Add(time.Hour * 24).Unix(),
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	secretKey := config.GetEnv("JWT_SECRET", "rahasia_parkir_2026")
+	tokenString, err := token.SignedString([]byte(secretKey))
+	if err != nil {
+		return "", nil, errors.New("gagal menerbitkan token")
+	}
+
+	return tokenString, user, nil
 }
 
 func (s *service) GetAllUsers() ([]models.User, error) {

@@ -38,24 +38,25 @@ func (h *Handler) CreateUser(c *fiber.Ctx) error {
 
 func (h *Handler) Login(c *fiber.Ctx) error {
 	var req LoginRequest
+
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Format request tidak valid"})
 	}
 
-	user, err := h.service.Login(req)
+	// Panggil service Login
+	token, user, err := h.service.Login(req)
 	if err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	// TODO: Generate JWT Token nantinya akan disisipkan di sini.
-	// Untuk sekarang, kita kembalikan data user yang berhasil login.
+	// Kembalikan Response sukses beserta Token
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"success": true,
 		"message": "Login berhasil",
-		"data": UserResponse{
-			ID:          user.ID,
+		"data": LoginResponse{
+			Token:       token,
+			IDUser:      user.ID,
 			NamaLengkap: user.NamaLengkap,
-			Username:    user.Username,
 			Role:        string(user.Role),
 		},
 	})
@@ -82,5 +83,16 @@ func (h *Handler) GetUsers(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"success": true,
 		"data":    response,
+	})
+}
+
+func (h *Handler) Logout(c *fiber.Ctx) error {
+	// Karena kita menggunakan JWT Stateless murni tanpa Database Blacklist,
+	// proses "pemusnahan" token sebenarnya terjadi di sisi Frontend (React).
+	// API ini bertugas memberikan respons sukses agar Frontend tahu ia boleh menghapus tokennya.
+	
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"success": true,
+		"message": "Logout berhasil. Sesi telah ditutup.",
 	})
 }
