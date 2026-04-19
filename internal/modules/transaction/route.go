@@ -15,4 +15,5 @@ func SetupRoute(router fiber.Router, db *gorm.DB) {
 
 	trxRoute.Post("/in", handler.CheckIn)
 	trxRoute.Post("/out", handler.CheckOut)
+	trxRoute.Get("/price/:plat_nomor", handler.CheckPrice)
 }

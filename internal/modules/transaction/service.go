@@ -12,6 +12,7 @@ import (
 type Service interface {
 	CheckIn(req CheckInRequest) (*models.Transaksi, error)
 	CheckOut(req CheckOutRequest) (*models.Transaksi, error)
+	CheckPrice(platNomor string) (*models.Transaksi, error)
 }
 
 type service struct {
@@ -160,4 +161,34 @@ func (s *service) CheckOut(req CheckOutRequest) (*models.Transaksi, error) {
 		return nil, err
 	}
 	return trxToUpdate, nil
+}
+
+func (s *service) CheckPrice(platNomor string) (*models.Transaksi, error) {
+	// 1. Cari transaksi yang masih gantung (belum keluar)
+	trx, err := s.repo.FindActiveTransaction(platNomor)
+	if err != nil {
+		return nil, errors.New("tiket masuk tidak ditemukan atau kendaraan sudah keluar")
+	}
+
+	// 2. Ambil Tarif berdasarkan jenis kendaraan (motor/mobil)
+	tarif, err := s.repo.FindTarifByJenis(trx.Kendaraan.JenisKendaraan)
+	if err != nil {
+		return nil, errors.New("master tarif belum diatur")
+	}
+
+	// 3. Hitung Durasi dan Biaya "Saat Ini" (Virtual)
+	waktuSekarang := time.Now()
+	durasiAsli := waktuSekarang.Sub(trx.WaktuMasuk).Hours()
+	
+	durasiJam := int(math.Ceil(durasiAsli))
+	if durasiJam < 1 {
+		durasiJam = 1
+	}
+	biayaTotal := float64(durasiJam) * tarif.TarifPerJam
+
+	// Tempelkan hasil hitungan sementara ke struct (TIDAK DISIMPAN KE DB)
+	trx.DurasiJam = durasiJam
+	trx.BiayaTotal = biayaTotal
+
+	return trx, nil
 }

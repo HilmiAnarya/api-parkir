@@ -115,3 +115,27 @@ func (h *Handler) CheckOut(c *fiber.Ctx) error {
 		},
 	})
 }
+
+func (h *Handler) CheckPrice(c *fiber.Ctx) error {
+	platNomor := c.Params("plat_nomor")
+	if platNomor == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Plat nomor wajib diisi"})
+	}
+
+	trx, err := h.service.CheckPrice(platNomor)
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"success": true,
+		"message": "Tagihan berhasil dihitung",
+		"data": TransactionResponse{
+			IDParkir:   trx.ID,
+			PlatNomor:  platNomor,
+			WaktuMasuk: trx.WaktuMasuk,
+			DurasiJam:  trx.DurasiJam,
+			BiayaTotal: trx.BiayaTotal,
+		},
+	})
+}

@@ -21,7 +21,7 @@ func ConnectDB() {
 	sslmode := GetEnv("DB_SSLMODE", "disable")
 
 	// Merakit DSN secara dinamis
-	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s",
+	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TimeZone=Asia/Jakarta",
 		host, user, password, dbname, port, sslmode)
 
 	var err error

@@ -7,12 +7,19 @@ import (
 	"api-parkir/internal/modules/transaction"
 	"api-parkir/internal/modules/user"
 	"log"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 )
 
 func main() {
+	loc, err := time.LoadLocation("Asia/Jakarta")
+	if err != nil {
+		log.Fatalf("Gagal memuat timezone: %v", err)
+	}
+	time.Local = loc
 	// 1. Load Environment Variables
 	config.LoadEnv()
 
@@ -23,6 +30,15 @@ func main() {
 	app := fiber.New(fiber.Config{
 		AppName: "Sistem Parkir API v1.0",
 	})
+
+	// ==========================================
+	// ⚡ TAMBAHKAN MIDDLEWARE CORS DI SINI ⚡
+	// ==========================================
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: "*", // Mengizinkan semua origin (frontend mana pun)
+		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
+		AllowMethods: "GET, POST, PUT, DELETE",
+	}))
 
 	app.Use(logger.New())
 
