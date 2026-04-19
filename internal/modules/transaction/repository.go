@@ -19,6 +19,9 @@ type Repository interface {
 	UpdateTransaction(transaksi *models.Transaksi) error
 	FindTarifByJenis(jenis string) (*models.Tarif, error)
 	InsertLogAktivitas(log *models.LogAktivitas) error
+	GetDashboardStats() (DashboardStatsResponse, error)
+	GetAll() ([]models.Transaksi, error)
+	GetLogs() ([]models.LogAktivitas, error)
 }
 
 type repository struct {
@@ -91,4 +94,40 @@ func (r *repository) FindTarifByJenis(jenis string) (*models.Tarif, error) {
 
 func (r *repository) InsertLogAktivitas(log *models.LogAktivitas) error {
 	return r.db.Create(log).Error
+}
+
+func (r *repository) GetDashboardStats() (DashboardStatsResponse, error) {
+	var stats DashboardStatsResponse
+
+	// A. Hitung kendaraan yang masih parkir (status = 'masuk')
+	r.db.Model(&models.Transaksi{}).Where("status = ?", "masuk").Count(&stats.KendaraanParkir)
+
+	// B. Hitung Total Kapasitas dan Jumlah Area
+	type AreaStat struct {
+		TotalKapasitas int64
+		AreaAktif      int64
+	}
+	var aStat AreaStat
+	r.db.Raw("SELECT COALESCE(SUM(kapasitas), 0) as total_kapasitas, COUNT(id) as area_aktif FROM tb_area_parkir").Scan(&aStat)
+	stats.TotalKapasitas = aStat.TotalKapasitas
+	stats.AreaAktif = aStat.AreaAktif
+
+	// C. Hitung Pendapatan Hari Ini (Waktu Keluar = Hari Ini)
+	r.db.Raw("SELECT COALESCE(SUM(biaya_total), 0) FROM tb_transaksi WHERE DATE(waktu_keluar) = CURRENT_DATE").Scan(&stats.PendapatanHariIni)
+
+	return stats, nil
+}
+
+func (r *repository) GetAll() ([]models.Transaksi, error) {
+	var trxs []models.Transaksi
+	// Ambil semua transaksi, urutkan dari yang terbaru ke terlama
+	err := r.db.Order("waktu_masuk desc").Find(&trxs).Error
+	return trxs, err
+}
+
+func (r *repository) GetLogs() ([]models.LogAktivitas, error) {
+	var logs []models.LogAktivitas
+	// Ambil semua log, urutkan dari yang paling baru
+	err := r.db.Order("id desc").Find(&logs).Error
+	return logs, err
 }

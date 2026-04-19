@@ -28,3 +28,10 @@ type TransactionResponse struct {
 	BiayaTotal  float64    `json:"biaya_total,omitempty"`
 	Status      string     `json:"status"`
 }
+
+type DashboardStatsResponse struct {
+	KendaraanParkir   int64   `json:"kendaraan_parkir"`
+	TotalKapasitas    int64   `json:"total_kapasitas"`
+	PendapatanHariIni float64 `json:"pendapatan_hari_ini"`
+	AreaAktif         int64   `json:"area_aktif"`
+}

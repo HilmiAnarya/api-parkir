@@ -13,6 +13,9 @@ type Service interface {
 	CheckIn(req CheckInRequest) (*models.Transaksi, error)
 	CheckOut(req CheckOutRequest) (*models.Transaksi, error)
 	CheckPrice(platNomor string) (*models.Transaksi, error)
+	GetDashboardStats() (DashboardStatsResponse, error)
+	GetAll() ([]models.Transaksi, error)
+	GetLogs() ([]models.LogAktivitas, error)
 }
 
 type service struct {
@@ -191,4 +194,16 @@ func (s *service) CheckPrice(platNomor string) (*models.Transaksi, error) {
 	trx.BiayaTotal = biayaTotal
 
 	return trx, nil
+}
+
+func (s *service) GetDashboardStats() (DashboardStatsResponse, error) {
+	return s.repo.GetDashboardStats()
+}
+
+func (s *service) GetAll() ([]models.Transaksi, error) {
+	return s.repo.GetAll()
+}
+
+func (s *service) GetLogs() ([]models.LogAktivitas, error) {
+	return s.repo.GetLogs()
 }

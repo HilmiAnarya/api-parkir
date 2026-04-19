@@ -139,3 +139,39 @@ func (h *Handler) CheckPrice(c *fiber.Ctx) error {
 		},
 	})
 }
+
+func (h *Handler) GetDashboardStats(c *fiber.Ctx) error {
+	stats, err := h.service.GetDashboardStats()
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Gagal mengambil data statistik"})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"success": true,
+		"data":    stats,
+	})
+}
+
+func (h *Handler) GetAll(c *fiber.Ctx) error {
+	trxs, err := h.service.GetAll()
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Gagal mengambil laporan transaksi"})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"success": true,
+		"data":    trxs,
+	})
+}
+
+func (h *Handler) GetLogs(c *fiber.Ctx) error {
+	logs, err := h.service.GetLogs()
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Gagal mengambil log aktivitas"})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"success": true,
+		"data":    logs,
+	})
+}
