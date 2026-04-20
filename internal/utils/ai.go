@@ -40,7 +40,7 @@ func DetectPlate(fileBytes []byte, filename string) (string, error) {
 	req.Header.Add("Content-Type", writer.FormDataContentType())
 
 	// 3. Eksekusi Request dengan Timeout 10 detik agar Go tidak hang jika Python mati
-	client := &http.Client{Timeout: 60 * time.Second}
+	client := &http.Client{Timeout: 600 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
 		return "", errors.New("gagal menghubungi AI Python. Pastikan server Python menyala")

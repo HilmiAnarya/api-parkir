@@ -16,6 +16,7 @@ type Service interface {
 	GetDashboardStats() (DashboardStatsResponse, error)
 	GetAll() ([]models.Transaksi, error)
 	GetLogs() ([]models.LogAktivitas, error)
+	GetByDateRange(start, end string) ([]models.Transaksi, error)
 }
 
 type service struct {
@@ -206,4 +207,9 @@ func (s *service) GetAll() ([]models.Transaksi, error) {
 
 func (s *service) GetLogs() ([]models.LogAktivitas, error) {
 	return s.repo.GetLogs()
+}
+
+func (s *service) GetByDateRange(start, end string) ([]models.Transaksi, error) {
+	// Service bertugas meneruskan request dari Handler ke Repository
+	return s.repo.GetByDateRange(start, end)
 }

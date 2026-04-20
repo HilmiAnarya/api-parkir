@@ -22,6 +22,7 @@ type Repository interface {
 	GetDashboardStats() (DashboardStatsResponse, error)
 	GetAll() ([]models.Transaksi, error)
 	GetLogs() ([]models.LogAktivitas, error)
+	GetByDateRange(start, end string) ([]models.Transaksi, error)
 }
 
 type repository struct {
@@ -130,4 +131,14 @@ func (r *repository) GetLogs() ([]models.LogAktivitas, error) {
 	// Ambil semua log, urutkan dari yang paling baru
 	err := r.db.Order("id desc").Find(&logs).Error
 	return logs, err
+}
+
+func (r *repository) GetByDateRange(start, end string) ([]models.Transaksi, error) {
+    var trxs []models.Transaksi
+    // Kita filter berdasarkan waktu_keluar karena rekap biasanya menghitung uang yang sudah diterima (selesai)
+    err := r.db.Preload("Kendaraan").
+        Where("DATE(waktu_keluar) BETWEEN ? AND ?", start, end).
+        Order("waktu_keluar desc").
+        Find(&trxs).Error
+    return trxs, err
 }

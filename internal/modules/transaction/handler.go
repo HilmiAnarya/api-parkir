@@ -9,6 +9,7 @@ import (
 
 	"api-parkir/internal/utils" // Import folder utils yang baru dibuat
 	"github.com/gofiber/fiber/v2"
+	"github.com/xuri/excelize/v2"
 )
 
 type Handler struct {
@@ -174,4 +175,48 @@ func (h *Handler) GetLogs(c *fiber.Ctx) error {
 		"success": true,
 		"data":    logs,
 	})
+}
+
+func (h *Handler) ExportExcel(c *fiber.Ctx) error {
+    start := c.Query("start_date")
+    end := c.Query("end_date")
+
+    if start == "" || end == "" {
+        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Rentang tanggal harus diisi"})
+    }
+
+    trxs, err := h.service.GetByDateRange(start, end)
+    if err != nil {
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+    }
+
+    f := excelize.NewFile()
+    defer f.Close()
+    sheet := "Rekap Parkir"
+    f.SetSheetName("Sheet1", sheet)
+
+    // Header
+    headers := []string{"ID", "Plat Nomor", "Waktu Masuk", "Waktu Keluar", "Durasi (Jam)", "Total Biaya"}
+    for i, h := range headers {
+        cell, _ := excelize.CoordinatesToCellName(i+1, 1)
+        f.SetCellValue(sheet, cell, h)
+    }
+
+    // Data Rows
+    for i, t := range trxs {
+        row := i + 2
+        f.SetCellValue(sheet, fmt.Sprintf("A%d", row), t.ID)
+        f.SetCellValue(sheet, fmt.Sprintf("B%d", row), t.Kendaraan.PlatNomor)
+        f.SetCellValue(sheet, fmt.Sprintf("C%d", row), t.WaktuMasuk.Format("2006-01-02 15:04"))
+        if t.WaktuKeluar != nil {
+            f.SetCellValue(sheet, fmt.Sprintf("D%d", row), t.WaktuKeluar.Format("2006-01-02 15:04"))
+        }
+        f.SetCellValue(sheet, fmt.Sprintf("E%d", row), t.DurasiJam)
+        f.SetCellValue(sheet, fmt.Sprintf("F%d", row), t.BiayaTotal)
+    }
+
+    c.Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    c.Set("Content-Disposition", fmt.Sprintf("attachment; filename=rekap_parkir_%s_%s.xlsx", start, end))
+
+    return f.Write(c.Response().BodyWriter())
 }
