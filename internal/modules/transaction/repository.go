@@ -100,32 +100,71 @@ func (r *repository) InsertLogAktivitas(log *models.LogAktivitas) error {
 func (r *repository) GetDashboardStats() (DashboardStatsResponse, error) {
 	var stats DashboardStatsResponse
 
-	// A. Hitung kendaraan yang masih parkir (GORM Model -> Otomatis filter deleted_at IS NULL)
+	// A. Hitung kendaraan yang masih parkir (status = 'masuk')
 	r.db.Model(&models.Transaksi{}).Where("status = ?", "masuk").Count(&stats.KendaraanParkir)
 
-	// B. Hitung Total Kapasitas dan Jumlah Area
+	// B. Hitung Total Kapasitas dan Jumlah Area Aktif
 	type AreaStat struct {
 		TotalKapasitas int64
 		AreaAktif      int64
 	}
 	var aStat AreaStat
-	// 👇 FIX: Tambahkan WHERE deleted_at IS NULL untuk Area Parkir
 	r.db.Raw(`
 		SELECT COALESCE(SUM(kapasitas), 0) as total_kapasitas, COUNT(id) as area_aktif 
 		FROM tb_area_parkir 
 		WHERE deleted_at IS NULL
 	`).Scan(&aStat)
-	
 	stats.TotalKapasitas = aStat.TotalKapasitas
 	stats.AreaAktif = aStat.AreaAktif
 
 	// C. Hitung Pendapatan Hari Ini
-	// 👇 FIX: Tambahkan WHERE deleted_at IS NULL untuk Transaksi
 	r.db.Raw(`
 		SELECT COALESCE(SUM(biaya_total), 0) 
 		FROM tb_transaksi 
-		WHERE DATE(waktu_keluar) = CURRENT_DATE AND deleted_at IS NULL
+		WHERE DATE(waktu_keluar) = CURRENT_DATE AND deleted_at IS NULL AND status = 'keluar'
 	`).Scan(&stats.PendapatanHariIni)
+
+	// ==========================================
+	// DATA UNTUK CHART (BARU)
+	// ==========================================
+
+	// D. Tren Pendapatan 7 Hari Terakhir
+	// Menggunakan TO_CHAR untuk mengubah tanggal jadi format "DD Mon" (misal: "12 Apr")
+	r.db.Raw(`
+		SELECT 
+			TO_CHAR(DATE(waktu_keluar), 'DD Mon') as nama, 
+			COALESCE(SUM(biaya_total), 0) as pendapatan 
+		FROM tb_transaksi 
+		WHERE deleted_at IS NULL 
+		AND status = 'keluar'
+		AND waktu_keluar >= CURRENT_DATE - INTERVAL '6 days'
+		GROUP BY DATE(waktu_keluar)
+		ORDER BY DATE(waktu_keluar) ASC
+	`).Scan(&stats.TrenPendapatan)
+
+	// Jika kosong (belum ada transaksi 7 hari terakhir), inisialisasi array kosong agar JSON tidak null
+	if stats.TrenPendapatan == nil {
+		stats.TrenPendapatan = []TrenPendapatan{}
+	}
+
+	// E. Utilisasi per Area (Kapasitas vs Terisi)
+	// Kita JOIN tb_area_parkir dengan tb_transaksi yang statusnya masih 'masuk'
+	r.db.Raw(`
+		SELECT 
+			a.nama_area as nama, 
+			a.kapasitas, 
+			COUNT(t.id) as terisi 
+		FROM tb_area_parkir a
+		LEFT JOIN tb_transaksi t ON a.id = t.id_area AND t.status = 'masuk' AND t.deleted_at IS NULL
+		WHERE a.deleted_at IS NULL
+		GROUP BY a.id, a.nama_area, a.kapasitas
+		ORDER BY a.id ASC
+	`).Scan(&stats.UtilisasiArea)
+
+	if stats.UtilisasiArea == nil {
+		stats.UtilisasiArea = []UtilisasiArea{}
+	}
+
 
 	return stats, nil
 }

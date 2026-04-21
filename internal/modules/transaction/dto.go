@@ -29,9 +29,22 @@ type TransactionResponse struct {
 	Status      string     `json:"status"`
 }
 
+type TrenPendapatan struct {
+	Nama       string  `json:"nama"`
+	Pendapatan float64 `json:"pendapatan"`
+}
+
+type UtilisasiArea struct {
+	Nama      string `json:"nama"`
+	Kapasitas int64  `json:"kapasitas"`
+	Terisi    int64  `json:"terisi"`
+}
+
 type DashboardStatsResponse struct {
 	KendaraanParkir   int64   `json:"kendaraan_parkir"`
 	TotalKapasitas    int64   `json:"total_kapasitas"`
 	PendapatanHariIni float64 `json:"pendapatan_hari_ini"`
 	AreaAktif         int64   `json:"area_aktif"`
+	TrenPendapatan    []TrenPendapatan `json:"tren_pendapatan"` 
+	UtilisasiArea     []UtilisasiArea  `json:"utilisasi_area"`   
 }
