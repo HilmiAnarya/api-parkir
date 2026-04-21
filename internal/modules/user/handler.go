@@ -1,6 +1,8 @@
 package user
 
 import (
+	"strconv"
+
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -94,5 +96,55 @@ func (h *Handler) Logout(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"success": true,
 		"message": "Logout berhasil. Sesi telah ditutup.",
+	})
+}
+
+func (h *Handler) UpdateUser(c *fiber.Ctx) error {
+	id, err := strconv.Atoi(c.Params("id"))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "ID tidak valid"})
+	}
+
+	var req UpdateUserRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Format request tidak valid"})
+	}
+
+	user, err := h.service.UpdateUser(id, req)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"success": true,
+		"message": "User berhasil diupdate",
+		"data": UserResponse{
+			ID:      user.ID,
+			NamaLengkap: user.NamaLengkap,
+			Role:        string(user.Role),
+		},
+	})
+}
+
+func (h *Handler) DeleteUser(c *fiber.Ctx) error {
+	id, err := strconv.Atoi(c.Params("id"))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "ID tidak valid"})
+	}
+
+	// Mencegah admin menghapus dirinya sendiri secara tidak sengaja
+	currentUserId := int(c.Locals("user_id").(float64)) // Diambil dari JWT
+	if id == currentUserId {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Anda tidak dapat menghapus akun Anda sendiri yang sedang aktif"})
+	}
+
+	err = h.service.DeleteUser(id)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"success": true,
+		"message": "User berhasil dihapus",
 	})
 }

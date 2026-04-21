@@ -14,6 +14,8 @@ type Service interface {
 	RegisterUser(req CreateUserRequest) (*models.User, error)
 	Login(req LoginRequest) (string, *models.User, error)
 	GetAllUsers() ([]models.User, error)
+	UpdateUser(id int, req UpdateUserRequest) (*models.User, error)
+	DeleteUser(id int) error
 }
 
 type service struct {
@@ -89,4 +91,45 @@ func (s *service) Login(req LoginRequest) (string, *models.User, error) {
 
 func (s *service) GetAllUsers() ([]models.User, error) {
 	return s.repo.FindAll()
+}
+
+func (s *service) UpdateUser(id int, req UpdateUserRequest) (*models.User, error) {
+	// Cek apakah user ada
+	user, err := s.repo.FindByID(id)
+	if err != nil {
+		return nil, errors.New("user tidak ditemukan")
+	}
+
+	// Update data dasar
+	user.NamaLengkap = req.NamaLengkap
+	user.Username = req.Username
+	user.Role = models.UserRole(req.Role)
+
+	// Jika field password diisi, berarti admin ingin mengganti password user
+	if req.Password != "" {
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+		if err != nil {
+			return nil, errors.New("gagal memproses password")
+		}
+		user.Password = string(hashedPassword)
+	}
+
+	// Simpan ke database
+	err = s.repo.Update(user)
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}
+
+func (s *service) DeleteUser(id int) error {
+	// Pastikan user ada sebelum dihapus
+	_, err := s.repo.FindByID(id)
+	if err != nil {
+		return errors.New("user tidak ditemukan")
+	}
+	
+	// Opsional: Validasi agar user tidak bisa menghapus dirinya sendiri bisa ditaruh di level Handler
+	return s.repo.Delete(id)
 }

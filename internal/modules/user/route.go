@@ -1,6 +1,8 @@
 package user
 
 import (
+	"api-parkir/internal/middleware"
+
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
 )
@@ -12,13 +14,18 @@ func SetupRoute(router fiber.Router, db *gorm.DB) {
 	svc := NewService(repo)
 	handler := NewHandler(svc)
 
-	// Membuat grup route khusus user
-	// Contoh jadinya: http://localhost:8080/api/users
 	userRoute := router.Group("/users")
 
-	// Endpoint
-	userRoute.Post("/register", handler.CreateUser) // Menambah user (Admin only nanti)
-	userRoute.Post("/login", handler.Login)         // Login sistem
+	// Rute Publik (Tanpa Token)
+	userRoute.Post("/login", handler.Login)
 	userRoute.Post("/logout", handler.Logout)
-	userRoute.Get("/", handler.GetUsers)            // Menampilkan semua user
+
+	// Rute CRUD Admin (Wajib Token + Wajib Role Admin)
+	adminRoute := userRoute.Group("/", middleware.Protected(), middleware.RequireRole("admin"))
+	
+	// Kita pindahkan register ke dalam rute admin, sehingga hanya admin yang bisa membuat user baru
+	adminRoute.Post("/", handler.CreateUser) 
+	adminRoute.Get("/", handler.GetUsers)
+	adminRoute.Put("/:id", handler.UpdateUser)
+	adminRoute.Delete("/:id", handler.DeleteUser)
 }

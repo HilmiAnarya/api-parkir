@@ -100,7 +100,7 @@ func (r *repository) InsertLogAktivitas(log *models.LogAktivitas) error {
 func (r *repository) GetDashboardStats() (DashboardStatsResponse, error) {
 	var stats DashboardStatsResponse
 
-	// A. Hitung kendaraan yang masih parkir (status = 'masuk')
+	// A. Hitung kendaraan yang masih parkir (GORM Model -> Otomatis filter deleted_at IS NULL)
 	r.db.Model(&models.Transaksi{}).Where("status = ?", "masuk").Count(&stats.KendaraanParkir)
 
 	// B. Hitung Total Kapasitas dan Jumlah Area
@@ -109,12 +109,23 @@ func (r *repository) GetDashboardStats() (DashboardStatsResponse, error) {
 		AreaAktif      int64
 	}
 	var aStat AreaStat
-	r.db.Raw("SELECT COALESCE(SUM(kapasitas), 0) as total_kapasitas, COUNT(id) as area_aktif FROM tb_area_parkir").Scan(&aStat)
+	// 👇 FIX: Tambahkan WHERE deleted_at IS NULL untuk Area Parkir
+	r.db.Raw(`
+		SELECT COALESCE(SUM(kapasitas), 0) as total_kapasitas, COUNT(id) as area_aktif 
+		FROM tb_area_parkir 
+		WHERE deleted_at IS NULL
+	`).Scan(&aStat)
+	
 	stats.TotalKapasitas = aStat.TotalKapasitas
 	stats.AreaAktif = aStat.AreaAktif
 
-	// C. Hitung Pendapatan Hari Ini (Waktu Keluar = Hari Ini)
-	r.db.Raw("SELECT COALESCE(SUM(biaya_total), 0) FROM tb_transaksi WHERE DATE(waktu_keluar) = CURRENT_DATE").Scan(&stats.PendapatanHariIni)
+	// C. Hitung Pendapatan Hari Ini
+	// 👇 FIX: Tambahkan WHERE deleted_at IS NULL untuk Transaksi
+	r.db.Raw(`
+		SELECT COALESCE(SUM(biaya_total), 0) 
+		FROM tb_transaksi 
+		WHERE DATE(waktu_keluar) = CURRENT_DATE AND deleted_at IS NULL
+	`).Scan(&stats.PendapatanHariIni)
 
 	return stats, nil
 }

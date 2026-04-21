@@ -29,3 +29,10 @@ type UserResponse struct {
 	Role        string `json:"role"`
 	StatusAktif bool   `json:"status_aktif"`
 }
+
+type UpdateUserRequest struct {
+	NamaLengkap string `json:"nama_lengkap"`
+	Username    string `json:"username"`
+	Password    string `json:"password"` // Opsional, dikosongkan jika tidak ingin ganti
+	Role        string `json:"role"`
+}
